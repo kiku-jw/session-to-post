@@ -47,6 +47,13 @@ def read_optional_text(path: Path | None) -> str:
     return path.read_text(encoding="utf-8").strip()
 
 
+def compact_text(text: str, *, limit: int = 240) -> str:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: limit - 1].rstrip() + "…"
+
+
 def extract_title(article_body: str) -> str:
     for line in article_body.splitlines():
         stripped = line.strip()
@@ -93,37 +100,196 @@ def llm_call(config: PipelineConfig, system_prompt: str, user_prompt: str) -> st
     return data["choices"][0]["message"]["content"].strip()
 
 
+def flatten_content(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    if isinstance(value, list):
+        parts = [flatten_content(item) for item in value]
+        return "\n".join(part for part in parts if part.strip())
+    if isinstance(value, dict):
+        if "text" in value:
+            return flatten_content(value["text"])
+        if "content" in value:
+            return flatten_content(value["content"])
+        if value.get("type") == "text":
+            return flatten_content(value.get("text"))
+        for key in ("message", "body", "prompt", "input", "output", "summary", "error"):
+            if key in value:
+                text = flatten_content(value[key])
+                if text.strip():
+                    return text
+        parts = [flatten_content(item) for item in value.values()]
+        return "\n".join(part for part in parts if part.strip())
+    return str(value)
+
+
+def transcript_label(record: dict[str, object]) -> str:
+    if record.get("error") or record.get("is_error") is True:
+        return "Failure"
+
+    raw_role = str(
+        record.get("role")
+        or record.get("speaker")
+        or record.get("author")
+        or record.get("type")
+        or record.get("event")
+        or ""
+    ).lower()
+    if any(token in raw_role for token in ("user", "human")):
+        return "User"
+    if any(token in raw_role for token in ("assistant", "model", "ai")):
+        return "Assistant"
+    if any(token in raw_role for token in ("tool", "function", "call")):
+        return "Tool"
+    if any(token in raw_role for token in ("system", "context")):
+        return "System"
+    return "Event"
+
+
+def extract_transcript_entry(record: dict[str, object]) -> str:
+    text = flatten_content(
+        record.get("content")
+        or record.get("text")
+        or record.get("message")
+        or record.get("body")
+        or record.get("prompt")
+        or record.get("input")
+        or record.get("output")
+        or record.get("delta")
+        or record.get("error")
+    )
+    if not text.strip():
+        return ""
+    return f"- {transcript_label(record)}: {compact_text(text)}"
+
+
+def normalize_plain_chat_log(chat_log: str, *, max_entries: int = 18) -> str:
+    entries: list[str] = []
+    for line in chat_log.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        entries.append(f"- Event: {compact_text(stripped)}")
+        if len(entries) >= max_entries:
+            break
+    return "\n".join(entries)
+
+
+def normalize_chat_log(chat_log: str, *, max_entries: int = 18) -> str:
+    raw = chat_log.strip()
+    if not raw:
+        return ""
+
+    records: list[dict[str, object]] = []
+    lines = [line for line in raw.splitlines() if line.strip()]
+    if raw.startswith("["):
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, list):
+            records = [item for item in parsed if isinstance(item, dict)]
+    elif raw.startswith("{") and len(lines) == 1:
+        try:
+            parsed = json.loads(raw)
+        except json.JSONDecodeError:
+            parsed = None
+        if isinstance(parsed, dict):
+            records = [parsed]
+    else:
+        jsonl_records: list[dict[str, object]] = []
+        for line in raw.splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                record = json.loads(stripped)
+            except json.JSONDecodeError:
+                jsonl_records = []
+                break
+            if isinstance(record, dict):
+                jsonl_records.append(record)
+        records = jsonl_records
+
+    if not records:
+        return normalize_plain_chat_log(raw, max_entries=max_entries)
+
+    entries: list[str] = []
+    for record in records:
+        entry = extract_transcript_entry(record)
+        if not entry:
+            continue
+        entries.append(entry)
+        if len(entries) >= max_entries:
+            break
+    if not entries:
+        return normalize_plain_chat_log(raw, max_entries=max_entries)
+    return "\n".join(entries)
+
+
 def build_writer_prompt(source_text: str, session_notes: str, chat_log: str) -> str:
     parts = ["## Source Material", "", "```diff", source_text[:12000], "```"]
     if session_notes:
         parts.extend(["", "## Session Notes", "", session_notes[:4000]])
     if chat_log:
-        parts.extend(["", "## Chat Log", "", chat_log[:4000]])
+        parts.extend(["", "## Conversation Timeline", "", normalize_chat_log(chat_log)])
     return "\n".join(parts)
 
 
-def build_editor_prompt(draft: str, source_text: str) -> str:
+def build_critic_prompt(draft: str, source_text: str, chat_log: str) -> str:
+    parts = [
+        "## Draft",
+        "",
+        draft,
+        "",
+        "## Source Material",
+        "",
+        "```diff",
+        source_text[:8000],
+        "```",
+    ]
+    if chat_log:
+        parts.extend(["", "## Conversation Timeline", "", normalize_chat_log(chat_log)])
+    return "\n".join(parts)
+
+
+def build_editor_prompt(draft: str, source_text: str, critic_notes: str, chat_log: str) -> str:
     return "\n".join(
         [
             "## Draft",
             "",
             draft,
             "",
+            "## Critic Notes",
+            "",
+            critic_notes,
+            "",
             "## Source Material",
             "",
             "```diff",
             source_text[:10000],
             "```",
+            "",
+            "## Conversation Timeline",
+            "",
+            normalize_chat_log(chat_log) if chat_log else "- Event: No transcript provided.",
         ]
     )
 
 
 def draft_article(config: PipelineConfig, source_text: str, session_notes: str, chat_log: str) -> str:
     writer_system = read_prompt("writer.md")
+    critic_system = read_prompt("critic.md")
     editor_system = read_prompt("editor.md")
     writer_prompt = build_writer_prompt(source_text, session_notes, chat_log)
     first_pass = llm_call(config, writer_system, writer_prompt)
-    editor_prompt = build_editor_prompt(first_pass, source_text)
+    critic_prompt = build_critic_prompt(first_pass, source_text, chat_log)
+    critic_notes = llm_call(config, critic_system, critic_prompt)
+    editor_prompt = build_editor_prompt(first_pass, source_text, critic_notes, chat_log)
     return llm_call(config, editor_system, editor_prompt)
 
 

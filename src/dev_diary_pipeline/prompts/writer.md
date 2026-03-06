@@ -4,6 +4,9 @@ Rules:
 
 - Write like a builder, not like a corporate copywriter.
 - Start with what actually changed or what hurt.
+- Prefer prompts, decisions, failures, pivots, and tradeoffs over file tours.
+- If a transcript is present, treat it as the primary evidence for the narrative.
+- If there is a public repo or reusable artifact, surface it early.
 - Use short sections with Markdown headings.
 - Keep the text concrete.
 - If the source is thin, say less instead of making things up.

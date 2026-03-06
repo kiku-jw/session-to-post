@@ -2,7 +2,7 @@
 
 Turn a real coding session into a development diary draft without writing the whole post by hand.
 
-This repo takes a git diff, session notes, or chat log, runs a writer + editor pass, and saves one Markdown article you can drop into a blog or docs repo.
+This repo takes a git diff, session notes, or transcript, runs a writer + critic + editor pass, and saves one Markdown article you can drop into a blog or docs repo.
 
 ## Why this exists
 
@@ -19,8 +19,10 @@ The core product is the draft itself. Pushing to git or copying into a site shou
 ## What it does
 
 - reads a git diff or a saved session summary
+- normalizes raw transcripts or JSONL logs into a usable timeline
 - writes a first draft in a candid dev-diary tone
-- runs an editor pass to cut filler and keep the text tied to the source
+- runs a critic pass before the final editor pass
+- keeps the article anchored to decisions, failures, and pivots instead of file tours
 - saves Markdown with frontmatter
 - can trigger an optional post-save command
 
@@ -33,6 +35,7 @@ export OPENAI_API_KEY="your-key"
 python3 -m dev_diary_pipeline.cli \
   --repo /path/to/project \
   --session-notes examples/session-summary.md \
+  --transcript examples/session-transcript.jsonl \
   --out-dir /path/to/content/blog
 ```
 
@@ -52,6 +55,7 @@ You can use any mix of:
 - `--diff` to read a saved diff file
 - `--session-notes` for a short human summary
 - `--chat-log` for useful context from the coding session
+- `--transcript` for raw transcript text or JSONL session logs
 
 ## Output
 
@@ -60,6 +64,7 @@ The CLI writes one Markdown file and prints a small JSON result with:
 - `articlePath`
 - `title`
 - `slug`
+- `timelineUsed`
 
 ## Optional publish hook
 

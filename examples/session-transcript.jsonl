@@ -1,0 +1,5 @@
+{"role":"user","content":"Move blog publishing into GitHub instead of local-only sync."}
+{"role":"assistant","content":"I will copy approved drafts into content/blog, rebuild artifacts, then commit and push."}
+{"role":"tool","content":"git push failed: missing auth for origin"}
+{"type":"error","error":"remote rejected credentials"}
+{"role":"assistant","content":"Switched to gh auth setup-git and retried the publish."}

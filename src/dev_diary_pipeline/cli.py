@@ -10,6 +10,7 @@ from .core import (
     PipelineConfig,
     draft_article,
     extract_title,
+    normalize_chat_log,
     read_diff_from_repo,
     read_optional_text,
     run_post_save_cmd,
@@ -34,6 +35,7 @@ def main() -> int:
     parser.add_argument("--diff", help="Path to a diff file. Use `-` to read from stdin.")
     parser.add_argument("--session-notes", help="Optional Markdown notes from the session.")
     parser.add_argument("--chat-log", help="Optional chat log or transcript.")
+    parser.add_argument("--transcript", help="Optional raw transcript or JSONL session log.")
     parser.add_argument("--out-dir", required=True, help="Directory where the draft Markdown file will be written.")
     parser.add_argument("--title", help="Override the generated article title.")
     parser.add_argument("--date", help="Override the article date (YYYY-MM-DD).")
@@ -54,7 +56,8 @@ def main() -> int:
         raise SystemExit("OPENAI_API_KEY is required.")
 
     session_notes = read_optional_text(Path(args.session_notes)) if args.session_notes else ""
-    chat_log = read_optional_text(Path(args.chat_log)) if args.chat_log else ""
+    transcript_path = args.transcript or args.chat_log
+    chat_log = read_optional_text(Path(transcript_path)) if transcript_path else ""
     article_body = draft_article(config, source_text, session_notes, chat_log)
     target = save_article(
         article_body,
@@ -76,6 +79,7 @@ def main() -> int:
                 "articlePath": str(target),
                 "title": title,
                 "slug": slug,
+                "timelineUsed": bool(normalize_chat_log(chat_log)) if chat_log else False,
             },
             ensure_ascii=False,
             indent=2,
