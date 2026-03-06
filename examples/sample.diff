@@ -1,0 +1,19 @@
+diff --git a/publish.py b/publish.py
+index 1111111..2222222 100644
+--- a/publish.py
++++ b/publish.py
+@@ -1,5 +1,10 @@
+-def publish_post(body):
+-    save_to_site(body)
++def save_draft(body, out_dir):
++    path = out_dir / "draft.md"
++    path.write_text(body, encoding="utf-8")
++    return path
++
++def publish_post(draft_path):
++    save_to_site(draft_path.read_text(encoding="utf-8"))
+ 
+ def main():
+-    publish_post(generate_article())
++    draft_path = save_draft(generate_article(), OUT_DIR)
++    publish_post(draft_path)
