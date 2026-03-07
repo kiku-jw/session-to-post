@@ -18,7 +18,7 @@ The core product is the draft itself. Pushing to git or copying into a site shou
 
 ## What it does
 
-- reads a git diff or a saved session summary
+- reads a git diff with optional session notes and transcript context
 - normalizes raw transcripts or JSONL logs into a usable timeline
 - writes a first draft in a candid dev-diary tone
 - runs a critic pass before the final editor pass
@@ -30,32 +30,44 @@ The core product is the draft itself. Pushing to git or copying into a site shou
 
 ```bash
 python3 -m pip install -e .
-cp .env.example .env
 export OPENAI_API_KEY="your-key"
-python3 -m dev_diary_pipeline.cli \
-  --repo /path/to/project \
+session-to-post \
+  --diff examples/sample.diff \
   --session-notes examples/session-summary.md \
   --transcript examples/session-transcript.jsonl \
-  --out-dir /path/to/content/blog
+  --out-dir ./out
 ```
 
-Or feed it a diff file:
+That command works from this repo as-is. It writes one Markdown draft to `./out` and prints a small JSON summary.
+
+## Which input should I use?
+
+Start with one code input, then add context only if it helps:
+
+- `--repo` is the best first choice when the work still lives in a local git repo and `git diff HEAD~1` roughly matches the session you want to write about.
+- `--diff` is better when you already saved a patch, want to trim the input, or the changes came from somewhere other than your current repo.
+- `--session-notes` helps when the story is mostly about intent, tradeoffs, or why the plan changed.
+- `--transcript` helps when the back-and-forth matters and you want the draft to keep the real timeline of pivots, questions, and dead ends.
+
+Simple rule: choose `--repo` or `--diff` first. Add `--session-notes` and `--transcript` only when they make the draft more faithful.
+
+## Real session example
 
 ```bash
-python3 -m dev_diary_pipeline.cli \
-  --diff examples/sample.diff \
+session-to-post \
+  --repo /path/to/project \
+  --session-notes /path/to/session-summary.md \
+  --transcript /path/to/session.jsonl \
   --out-dir ./out
 ```
 
 ## Inputs
 
-You can use any mix of:
+The CLI accepts:
 
-- `--repo` to read `git diff HEAD~1`
-- `--diff` to read a saved diff file
-- `--session-notes` for a short human summary
-- `--chat-log` for useful context from the coding session
-- `--transcript` for raw transcript text or JSONL session logs
+- one code input: `--repo`, `--diff`, or `--diff -` to read from stdin
+- optional context: `--session-notes` and `--transcript`
+- compatibility alias: `--chat-log` works like `--transcript`
 
 ## Output
 
@@ -73,7 +85,7 @@ If you want to hand the result to another system, pass `--post-save-cmd`.
 Example:
 
 ```bash
-python3 -m dev_diary_pipeline.cli \
+session-to-post \
   --repo /path/to/project \
   --out-dir /path/to/content/blog \
   --post-save-cmd 'git -C /path/to/site add "$ARTICLE_PATH"'
