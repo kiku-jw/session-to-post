@@ -6,6 +6,27 @@ This repo takes a git diff, session notes, or transcript, runs a writer + critic
 
 As a skill, it improves natural-language invocation near the end of a session. It does not auto-run unless your Codex setup or automation tells it to.
 
+## Explicit trigger pattern
+
+This skill should fire when the user is clearly wrapping up and there is already real work to capture.
+
+Good trigger phrases:
+
+- `before we stop, summarize today's work`
+- `wrap up this session`
+- `save what we learned today`
+- `turn this diff into a build diary`
+- `make a post seed from this session`
+
+Good evidence:
+
+- current repo diff
+- saved patch
+- session notes
+- transcript or JSONL log
+
+It should not be the default for mid-session status checks or vague brainstorming.
+
 ## Why this exists
 
 Most developer blogs die in the same boring place: the work happened, the lessons were real, but nobody wants to spend another hour turning them into a post.
