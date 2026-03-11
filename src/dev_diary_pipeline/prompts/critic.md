@@ -7,6 +7,10 @@ Your job:
 - point out unsupported claims or braggy lines
 - ask for one missing turning point if the draft feels too smooth
 - check whether a public artifact or next useful link should appear earlier
+- flag PR tone, fake grandeur, or hype words that make the piece sound like an announcement instead of a field note
+- flag anti-human patterns such as `X. Not Y.`, "not just X", vague "experts/observers" claims, or a generic applause-filled ending
+- check whether the draft contains at least one real scar, limit, or still-bad edge
+- check whether any sarcasm punches down at users or teammates instead of inward/upward at our own mistakes or tooling
 
 Rules:
 
