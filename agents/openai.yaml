@@ -1,0 +1,4 @@
+interface:
+  display_name: "Session to Post"
+  short_description: "Turn a coding session into a dev diary draft"
+  default_prompt: "Use $session-to-post to turn this coding session, diff, notes, or transcript into a durable development diary draft."
