@@ -1,8 +1,10 @@
 # session-to-post
 
-Turn a real coding session into a development diary draft without writing the whole post by hand.
+Codex skill and CLI for turning a real coding session into a development diary draft without writing the whole post by hand.
 
 This repo takes a git diff, session notes, or transcript, runs a writer + critic + editor pass, and saves one Markdown article you can drop into a blog or docs repo.
+
+As a skill, it improves natural-language invocation near the end of a session. It does not auto-run unless your Codex setup or automation tells it to.
 
 ## Why this exists
 
@@ -20,11 +22,18 @@ The core product is the draft itself. Pushing to git or copying into a site shou
 
 - reads a git diff with optional session notes and transcript context
 - normalizes raw transcripts or JSONL logs into a usable timeline
-- writes a first draft in a candid dev-diary tone
+- writes a first draft in a candid field-note tone: sharp, concrete, and a little suspicious of hype
 - runs a critic pass before the final editor pass
 - keeps the article anchored to decisions, failures, and pivots instead of file tours
 - saves Markdown with frontmatter
 - can trigger an optional post-save command
+
+## Repository layout
+
+- `SKILL.md` - Codex skill instructions for when and how to use the repo as a skill
+- `agents/openai.yaml` - skill metadata for UI surfaces
+- `src/dev_diary_pipeline/` - CLI and generation pipeline
+- `examples/` - sample inputs
 
 ## Quick start
 
