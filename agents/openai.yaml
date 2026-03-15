@@ -1,4 +1,4 @@
 interface:
-  display_name: "Session to Post"
-  short_description: "Turn end-of-session work into a durable dev diary draft"
-  default_prompt: "Use $session-to-post at the end of a coding session to turn the diff, notes, or transcript into a durable development diary draft or wrap-up."
+  display_name: Session to Post
+  short_description: Turn real session artifacts into a durable wrap-up or post
+  default_prompt: Use $session-to-post to turn this completed coding session into a grounded wrap-up or post draft based on the real artifacts.
